@@ -13,16 +13,22 @@ var InstructionElement = function(x, y, paletteTool, gameStep){
 
     this.events.onDragStart.add(this.onInstructionElementDragStart, this);
     this.events.onDragStop.add(this.onInstructionElementDragStop, this);
+    this.events.onInputUp.add(this.onInstructionElementInputUp, this);
 
     this.game.time.events.add(150, function() {
         this.input.startDrag(this.game.input.activePointer);
     }, this);
+
+    //Bug fix: sometimes, dragStop is not properly called, neither onInputUp for the sprite
+    // Probably due to us messing with startDrag ;)
+    this.game.input.onUp.add(this.onInstructionElementInputUp, this);
 }
 InstructionElement.prototype = Object.create(Phaser.Sprite.prototype);
 InstructionElement.prototype.constructor = InstructionElement;
 
 // Picking an instruction element
 InstructionElement.prototype.onInstructionElementDragStart = function (){
+    //console.log("onInstructionElementDragStart");
     this.scale.set(0.8*0.25);
     this.alpha = 0.5;
 };
@@ -30,6 +36,7 @@ InstructionElement.prototype.onInstructionElementDragStart = function (){
 // Dropping an instruction element
 InstructionElement.prototype.onInstructionElementDragStop = function (){
     //TODO Add tween to restored size/alpha
+    //console.log("onInstructionElementDragStop");
     this.scale.set(0.25);
     this.alpha = 1;
     if(!Phaser.Rectangle.intersects(this.paletteTool.instructionZone.getBounds(), this.getBounds())){
@@ -38,6 +45,14 @@ InstructionElement.prototype.onInstructionElementDragStop = function (){
     }
     if(this.paletteTool.onInstructionPlaced){
         this.paletteTool.onInstructionPlaced(this.gameStep);
+    }
+};
+
+InstructionElement.prototype.onInstructionElementInputUp = function(){
+    //console.log("onInstructionElementInputUp", this, this.input.isDragged);
+    if(this.input.isDragged){
+        //console.log("Force drag stop");
+        this.input.stopDrag(this.game.input.activePointer);
     }
 };
 
@@ -65,9 +80,6 @@ PaletteTool.prototype.toolsPaletteClick = function (){
     this.game.add.tween(this).to({alpha: 1}, 1000, Phaser.Easing.Quadratic.Out, true);
     var newElementDragged = new InstructionElement(this.x, this.y, this, this.gameStep);
     this.createdInstructions.add(newElementDragged);
-    this.game.time.events.add(10, function() {
-        newElementDragged.input.startDrag(this.game.input.activePointer);
-    }, this);
 };
 
 //--------------------------------------------------------------------
@@ -205,6 +217,7 @@ gameStep.prototype = {
         //We reset the beam
         var xOffset = 0;//32/2;
         var yOffset = 0;
+        var secondHaldBeamMapping = {'right':'left','left':'right','up':'down','down':'up',}
         gameStep.beamGroup.removeAll(true, true);
         var maxX = gameStep.instructionZone.x + gameStep.instructionZone.getBounds().width;
         var maxY = gameStep.instructionZone.y + gameStep.instructionZone.getBounds().height;
@@ -253,6 +266,13 @@ gameStep.prototype = {
             gameStep.beamGroup.add(beamPart);
             previousBeam.nextBeam = beamPart;
             previousBeam = beamPart;
+            if(previousDirection == direction && previousBeam){
+                var secondHalfKey = secondHaldBeamMapping[direction];
+                var secondHalfBeamKind = "beam"+secondHalfKey.charAt(0).toUpperCase() + secondHalfKey.slice(1);
+                var beamSecondHalf = gameStep.add.sprite(0, 0, secondHalfBeamKind);
+                beamSecondHalf.anchor.set(0.5);
+                previousBeam.addChild(beamSecondHalf);
+            }
             //4 - Move next position
             if(direction == "right"){
                 x += 32;
