@@ -16,6 +16,9 @@ https://commons.wikimedia.org/wiki/Bluesphere_SVG_icons
 https://commons.wikimedia.org/wiki/Category:Nuvola_SVG_stock
 * Beam inspiration
 http://opengameart.org/content/lasers-and-beams
+* Orbs
+http://opengameart.org/content/shiny-orbs-64x64
+
 ________________________________________
 
 		Guides
