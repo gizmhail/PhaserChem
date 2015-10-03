@@ -10,7 +10,7 @@ ________________________________________
 * Cursors
 http://opengameart.org/content/cursors-arrows-map-markers-for-ardentryst-by-jordan-trudgett
 * Background
-Phaser.io Examples
+Phaser.io Examples (http://phaser.io/examples/v2/input/snap-on-drag)
 * Icons
 https://commons.wikimedia.org/wiki/Bluesphere_SVG_icons
 https://commons.wikimedia.org/wiki/Category:Nuvola_SVG_stock
