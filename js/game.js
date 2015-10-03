@@ -1,101 +1,3 @@
-var InstructionElement = function(x, y, paletteTool, gameStep){
-
-    Phaser.Sprite.call(this,  gameStep.game, x, y, paletteTool.instruction);
-    this.gameStep = gameStep;
-    this.game = gameStep.game;
-    this.game.add.existing(this);
-    this.instruction = paletteTool.instruction;
-    this.paletteTool = paletteTool;
-    this.inputEnabled = true;
-    this.input.enableDrag(true);
-    this.input.enableSnap(32, 32, true, true);
-    this.scale.set(0.25);
-    this.anchor.set(0.5);
-
-    this.events.onDragStart.add(this.onInstructionElementDragStart, this);
-    this.events.onDragStop.add(this.onInstructionElementDragStop, this);
-    this.events.onInputUp.add(this.onInstructionElementInputUp, this);
-
-    this.game.time.events.add(150, function() {
-        this.input.startDrag(this.game.input.activePointer);
-    }, this);
-
-    //Bug fix: sometimes, dragStop is not properly called, neither onInputUp for the sprite
-    // Probably due to us messing with startDrag ;)
-    this.game.input.onUp.add(this.onInstructionElementInputUp, this);
-    if(paletteTool.displayName && paletteTool.displayName != ""){
-        var display = this.gameStep.add.text(0,90,paletteTool.displayName,{fill: "#FFFFFF", font: "46px Arial"});
-        display.anchor.set(0.5);
-        this.addChild(display);
-    }
-}
-InstructionElement.prototype = Object.create(Phaser.Sprite.prototype);
-InstructionElement.prototype.constructor = InstructionElement;
-
-// Picking an instruction element
-InstructionElement.prototype.onInstructionElementDragStart = function (){
-    //console.log("onInstructionElementDragStart");
-    this.scale.set(0.8*0.25);
-    this.alpha = 0.5;
-};
-
-// Dropping an instruction element
-InstructionElement.prototype.onInstructionElementDragStop = function (){
-    //TODO Add tween to restored size/alpha
-    //console.log("onInstructionElementDragStop");
-    this.scale.set(0.25);
-    this.alpha = 1;
-    if(!Phaser.Rectangle.intersects(this.paletteTool.instructionZone.getBounds(), this.getBounds())){
-        this.paletteTool.createdInstructions.remove(this);
-        this.destroy();
-    }
-    if(this.paletteTool.onInstructionPlaced){
-        this.paletteTool.onInstructionPlaced(this.gameStep);
-    }
-};
-
-InstructionElement.prototype.onInstructionElementInputUp = function(){
-    //console.log("onInstructionElementInputUp", this, this.input.isDragged);
-    if(this.input.isDragged){
-        //console.log("Force drag stop");
-        this.input.stopDrag(this.game.input.activePointer);
-    }
-};
-
-//--------------------------------------------------------------------
-
-var PaletteTool = function(x, y, instruction, instructionZone, gameStep, displayName){
-    if (typeof displayName === 'undefined') { displayName = instruction; }
-    Phaser.Sprite.call(this, gameStep.game, x, y, instruction);
-    this.gameStep = gameStep;
-    this.game = gameStep.game;
-    this.game.add.existing(this);
-    this.displayName = displayName;
-    this.instructionZone = instructionZone;
-    this.instruction = instruction;
-    this.scale.set(0.25);
-    this.anchor.set(0.5);
-    this.inputEnabled = true;
-    this.createdInstructions = this.game.add.group();
-    this.events.onInputDown.add(this.toolsPaletteClick, this);
-    if(displayName && displayName != ""){
-        var display = this.gameStep.add.text(0,90,displayName,{fill: "#FFFFFF", font: "46px Arial"});
-        display.anchor.set(0.5);
-        this.addChild(display);
-    }
-};
-PaletteTool.prototype = Object.create(Phaser.Sprite.prototype);
-PaletteTool.prototype.constructor = PaletteTool;
-
-// Click on a palette element: duplicating it and starting a drag
-PaletteTool.prototype.toolsPaletteClick = function (){
-    this.alpha = 0.5;
-    this.game.add.tween(this).to({alpha: 1}, 1000, Phaser.Easing.Quadratic.Out, true);
-    var newElementDragged = new InstructionElement(this.x, this.y, this, this.gameStep);
-    this.createdInstructions.add(newElementDragged);
-};
-
-//--------------------------------------------------------------------
 
 
 var gameStep = function(){
@@ -162,8 +64,8 @@ gameStep.prototype = {
     },
     // Called after the renderer rendered - usefull for debug rendering, ...
     render: function  () {
-        this.game.debug.spriteBounds(this.targetCursor, '#FF6600', false);
         return;
+        this.game.debug.spriteBounds(this.targetCursor, '#FF6600', false);
         this.beamGroup.forEachAlive(function(beam){
             this.game.debug.spriteBounds(beam);
         }, this);
@@ -172,6 +74,8 @@ gameStep.prototype = {
     },
     
     // --------------------------------------
+    //TODO: Move the 3 methods below in a beam class, to easily support multiple beams
+    
     playCursor: function(){
         if(this.cursorMoving){
             this.cursorMoving = false;
