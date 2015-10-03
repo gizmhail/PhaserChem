@@ -45,9 +45,13 @@ gameStep.prototype = {
             this.toolsPalette[toolName] = new PaletteTool(1100, 100+i*60, toolName, this.instructionZone, this);
             this.toolsPalette[toolName].onInstructionPlaced = this.traceBeam;
         };
-        this.inPoint = {'x':32*15+2,'y':32*7};
-        this.startPoint = this.add.sprite(32*10+2, 32*7,'enter');
-        this.targetCursor = this.add.sprite(322, 224,'target');
+        this.inPoint = {'x':32*11,'y':32*7};
+        var inGhost = this.add.sprite(this.inPoint.x, this.inPoint.y ,'in');
+        inGhost.alpha = 0.5;
+        inGhost.anchor.set(0.5);
+        inGhost.scale.set(0.25);
+        this.startPoint = this.add.sprite(32*6+2, 32*7,'enter');
+        this.targetCursor = this.add.sprite(32*6+2, 32*7,'target');
         this.startPoint.anchor.set(0.5);
         this.targetCursor.anchor.set(0.5);
         this.targetCursor.scale.set(2);
@@ -75,7 +79,7 @@ gameStep.prototype = {
     
     // --------------------------------------
     //TODO: Move the 3 methods below in a beam class, to easily support multiple beams
-    
+
     playCursor: function(){
         if(this.cursorMoving){
             this.cursorMoving = false;
