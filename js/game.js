@@ -21,7 +21,7 @@ gameStep.prototype = {
         game.load.image('background', 'assets/grid.png');
         for (var i = 0; i < this.tools.length; i++) {
             var toolName = this.tools[i]
-            game.load.image(toolName, 'assets/'+toolName+'.png');
+            game.load.image(toolName, 'assets/'+toolName+'.png?v=1');
         };
         game.load.image('enter', 'assets/enter.png');
         game.load.image('beamUp', 'assets/beamUp2.png');
@@ -32,7 +32,6 @@ gameStep.prototype = {
         game.load.image('playButton', 'assets/play.png');
         game.load.image('pauseButton', 'assets/pause.png');
         game.load.image('in', 'assets/in.png');
-        game.load.image('grabdrop', 'assets/grabdrop.png');
         game.load.image('orb', 'assets/Flameless2.png');
 
     },
@@ -46,7 +45,7 @@ gameStep.prototype = {
             this.toolsPalette[toolName].onInstructionPlaced = this.traceBeam;
         };
         this.inPoint = {'x':32*11,'y':32*7};
-        var inGhost = this.add.sprite(this.inPoint.x, this.inPoint.y ,'in');
+        var inGhost = this.add.sprite(this.inPoint.x, this.inPoint.y ,'grabdrop');
         inGhost.alpha = 0.5;
         inGhost.anchor.set(0.5);
         inGhost.scale.set(0.25);
