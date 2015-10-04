@@ -25,6 +25,7 @@ gameStep.prototype = {
             game.load.image(toolName, 'assets/'+toolName+'.png?v=2');
         };
         game.load.image('enter', 'assets/enter.png?v=2');
+        game.load.image('red_enter', 'assets/red_enter.png?v=2');
         game.load.image('beamUp', 'assets/beamUp2.png?v=2');
         game.load.image('beamRight', 'assets/beamRight2.png?v=2');
         game.load.image('beamDown', 'assets/beamDown2.png?v=2');
@@ -74,7 +75,7 @@ gameStep.prototype = {
 
 
         //Beam
-        var beam1 = new Beam(32*6+2, 32*7, this.instructionZone, this.redToolsPalette, this.orbGroup, 'target', 'enter', 'beam', this, 32);
+        var beam1 = new Beam(32*6+2, 32*7, this.instructionZone, this.redToolsPalette, this.orbGroup, 'target', 'red_enter', 'beam', this, 32);
         this.beams.push(beam1);
         beam1.onBeamReset = this.onBeamReset;
         beam1.onBeamCursorOveringInstruction = this.onBeamCursorOveringInstruction;
