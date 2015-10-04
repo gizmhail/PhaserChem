@@ -99,6 +99,7 @@ InstructionElement.prototype.onInstructionElementDragStop = function (){
     if(this.paletteTool.onInstructionPlaced){
         this.paletteTool.onInstructionPlaced(this, this.gameStep);
     }
+    //console.log("New",this.x,this.y,this.instruction);
 };
 
 InstructionElement.prototype.onInstructionElementInputUp = function(){

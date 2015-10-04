@@ -2,14 +2,11 @@ var gameStep = function(){
     this.characterSprite = null;
     this.instructionZone = null;
     this.toolsPalette = {};
-    this.startPoint = null;
     this.tools = ["left","right","up","down","in","grabdrop"];
-    this.beamGroup = null;
-    this.targetCursor = null;
-    this.cursorMoving = false;
     this.playButton = null;
     this.inPoint = null;
     this.orbGroup = null;
+    this.beams = [];
 };
 
 gameStep.prototype = { 
@@ -32,33 +29,47 @@ gameStep.prototype = {
         game.load.image('orb', 'assets/Flameless2.png?v=2');
 
     },
+
     // Called after preload - create sprites,... using assets here
     create: function () {
         //this.backgroundSprite = tutorialGame.add.sprite(0, 0, 'background');
         this.instructionZone = this.add.tileSprite(50, 50, 1024, 700, 'background');
         for (var i = 0; i < this.tools.length; i++) {
             var toolName = this.tools[i];
-            this.toolsPalette[toolName] = new PaletteTool(1110, 100+i*60, toolName, this.instructionZone, this, toolName, 32);
+            this.toolsPalette[toolName] = new PaletteTool(1100, 20+i*60, toolName, this.instructionZone, this, toolName, 32);
             this.toolsPalette[toolName].onInstructionPlaced = this.onInstructionPlaced;
         };
+ 
+        //inPoint
         this.inPoint = {'x':32*11,'y':32*7};
         var inGhost = this.add.sprite(this.inPoint.x, this.inPoint.y ,'grabdrop');
         inGhost.alpha = 0.5;
         inGhost.anchor.set(0.5);
-        this.startPoint = this.add.sprite(32*6+2, 32*7,'enter');
-        this.targetCursor = this.add.sprite(32*6+2, 32*7,'target');
-        this.startPoint.anchor.set(0.5);
-        this.targetCursor.anchor.set(0.5);
-        this.beamGroup = this.add.group();
+
         this.orbGroup = this.add.group();
-        this.traceBeam(this);
-        this.playButton = game.add.button(400, 10, 'playButton', this.playCursor, this);
+        this.playButton = game.add.button(400, 10, 'playButton', this.toggleCursors, this);
         this.playButton.scale.set(0.8);
-    },
+
+
+        //Beam
+        var beam1 = new Beam(32*6+2, 32*7, this.instructionZone, this.toolsPalette, this.orbGroup, 'target', 'enter', 'beam', this, 32);
+        this.beams.push(beam1);
+        beam1.onBeamReset = this.onBeamReset;
+        beam1.onBeamCursorOveringInstruction = this.onBeamCursorOveringInstruction;
+        beam1.traceBeam();
+        //Beam2
+        var beam2 = new Beam(32*6+2, 32*12, this.instructionZone, this.toolsPalette, this.orbGroup, 'target', 'enter', 'beam', this, 32);
+        this.beams.push(beam2);
+        beam2.onBeamReset = this.onBeamReset;
+        beam2.onBeamCursorOveringInstruction = this.onBeamCursorOveringInstruction;
+        beam2.traceBeam();
+   },
+
     // Called for each refresh
     update: function (){
    
     },
+
     // Called after the renderer rendered - usefull for debug rendering, ...
     render: function  () {
         return;
@@ -69,193 +80,84 @@ gameStep.prototype = {
         this.game.debug.spriteBounds(this.startPoint, '#FF6600', false);
 
     },
+
+    // ------ Interface controls -----------------------------------
+
+    toggleCursors: function(){
+        if(this.cursorMoving){
+            this.cursorMoving = false;
+            this.playButton.loadTexture("playButton");
+            for (var i = 0; i < this.beams.length; i++) {
+                var beam = this.beams[i];
+                beam.stopCursor();
+            };
+            return;
+        }
+        this.cursorMoving = true;
+        this.playButton.loadTexture("pauseButton");
+        for (var i = 0; i < this.beams.length; i++) {
+            var beam = this.beams[i];
+            beam.playCursor();
+        };
+    },
+
+    // ------ Beam methods --------------------------------
+
+    onBeamReset: function(beam){
+        this.orbGroup.removeAll(true, true);
+    },
+
+    onBeamCursorOveringInstruction: function(beam, x, y, instructionElement, gameStep){
+        if (typeof gameStep === 'undefined') { gameStep = this; }
+            console.log("onBeamCursorOveringInstruction",instructionElement);
+        if(instructionElement == "in"){
+            console.log("in");
+            var orb = gameStep.add.sprite(gameStep.inPoint.x, gameStep.inPoint.y, "orb");    
+            orb.anchor.set(0.5);
+            orb.attachedToCursor = null;
+            gameStep.orbGroup.add(orb);
+        }
+        if(instructionElement == "grabdrop"){
+            var droppingDone = false;
+            for (var i = 0; i < gameStep.beams.length; i++) {
+                var existingBeam = gameStep.beams[i];
+                if(existingBeam.targetCursor.children.length > 0){
+                    // Dropping orb associated with this.beam cursor
+                    var orb = existingBeam.targetCursor.getChildAt(0)
+                    existingBeam.targetCursor.removeChild(orb);
+                    //We put back the orb in the orbs group (it was removed when attached as a sprite child)
+                    gameStep.orbGroup.add(orb);
+                    orb.x = x;
+                    orb.y = y;
+                    droppingDone = true;
+                }
+            };
+        
+            if(!droppingDone){
+                // Grabing any orb below a cursor
+                for (var j = 0; j < gameStep.orbGroup.children.length; j++) {
+                    var orb = gameStep.orbGroup.children[j];
+                    var d = Math.abs(orb.x - x) + Math.abs(orb.y - y);
+                    if(d < 20 ){
+                        orb.attachedToCursor = beam.targetCursor;
+                        beam.targetCursor.addChild(orb);
+                        orb.x = 0;
+                        orb.y = 0;
+                    }
+                }
+            }    
+        }
+    },
     
-    // --------------------------------------
+    // ------ Tools palette methods --------------------------------
 
     onInstructionPlaced: function(instructionElement, gameStep){
         if (typeof gameStep === 'undefined') { gameStep = this; }
-        gameStep.stopCursor();
-        gameStep.traceBeam(gameStep);
+        for (var i = 0; i < gameStep.beams.length; i++) {
+            var beam = gameStep.beams[i];
+            beam.stopCursor();
+            beam.traceBeam(gameStep);
+        }
+        gameStep.playButton.loadTexture("playButton");
     },
-    //TODO: Move the 3 methods below in a beam class, to easily support multiple beams
-
-    stopCursor: function(){
-        this.cursorMoving = false;
-        if(this.targetCursor.beamTween){
-            this.targetCursor.beamTween.stop();
-        }
-        this.playButton.loadTexture("playButton");
-        this.targetCursor.x = this.startPoint.x;
-        this.targetCursor.y = this.startPoint.y;
-        console.log("Reset:", this.startPoint.x, this.startPoint.y);
-        //Reset all orb
-        //Orbs attached to cursor need to be detached
-        this.targetCursor.removeChildren();
-        this.orbGroup.removeAll(true, true);
-
-    },
-    playCursor: function(){
-        if(this.cursorMoving){
-            this.stopCursor();
-            return;
-        }
-        this.playButton.loadTexture("pauseButton");
-        this.cursorMoving = true;
-        this.moveCursor(this, this.startPoint);
-    },
-
-    moveCursor: function(gameStep, previousBeam){
-        var cursorMoveTime = 200;
-        if (typeof gameStep === 'undefined') { gameStep = this; }
-        var x = this.targetCursor.x;
-        var y = this.targetCursor.y;
-        //Actions
-        for (var toolName in gameStep.toolsPalette) {
-                var paletteTool = gameStep.toolsPalette[toolName];
-                for (var i = 0; i < paletteTool.createdInstructions.children.length; i++) {
-                    var createdInstruction = paletteTool.createdInstructions.children[i];
-                    var d = Math.abs(createdInstruction.x - x) + Math.abs(createdInstruction.y - y);
-                    if(d < 20 ){
-                        console.log("Action:", createdInstruction.instruction);
-                        if(createdInstruction.instruction == "in"){
-                            var orb = gameStep.add.sprite(gameStep.inPoint.x,gameStep.inPoint.y,"orb");    
-                            orb.anchor.set(0.5);
-                            orb.attachedToCursor = null;
-                            gameStep.orbGroup.add(orb);
-                        }
-                        if(createdInstruction.instruction == "grabdrop"){
-                            if(this.targetCursor.children.length > 0){
-                                var orb = this.targetCursor.getChildAt(0)
-                                gameStep.targetCursor.removeChild(orb);
-                                gameStep.orbGroup.add(orb);
-                                orb.x = x;
-                                orb.y = y;
-                            }else  {
-                                for (var j = 0; j < gameStep.orbGroup.children.length; j++) {
-                                    var orb = gameStep.orbGroup.children[j];
-                                    var d = Math.abs(orb.x - x) + Math.abs(orb.y - y);
-                                    if(d < 20 ){
-                                        orb.attachedToCursor = this.targetCursor;
-                                        this.targetCursor.addChild(orb);
-                                        orb.x = 0;
-                                        orb.y = 0;
-                                    }
-                                }
-                            }    
-                        }
-                    }
-                };
-            };
-
-        //Move cursor
-        if (typeof previousBeam === 'undefined') { 
-            gameStep.beamGroup.forEachAlive(function(beam){
-                if(beam.x == x && beam.y == y){
-                    previousBeam = beam;
-                }
-            }, this);
-        }
-
-        if(!previousBeam){
-            console.log("Unable to find beam for cursor");
-            return;
-        }
-        if(!previousBeam.nextBeam){
-            console.log('no next');
-            return;
-        }
-        this.targetCursor.beamTween = gameStep.add.tween(this.targetCursor);
-        this.targetCursor.beamTween.to({'x':previousBeam.nextBeam.x,'y':previousBeam.nextBeam.y}, cursorMoveTime);    
-        this.targetCursor.beamTween.onComplete.add(function(){
-            //console.log('Done tween');
-            gameStep.moveCursor(gameStep, previousBeam.nextBeam);
-        }, this);
-        this.targetCursor.beamTween.start();
-
-    },
-
-    traceBeam: function(gameStep) {
-        if (typeof gameStep === 'undefined') { gameStep = this; }
-        var beamKeyPrefix = "beam";
-        var beamGroup = gameStep.beamGroup;
-        var instructionZone = gameStep.instructionZone;
-        var startPoint = gameStep.startPoint;
-        var toolsPalette = gameStep.toolsPalette;
-        var secondHaldBeamMapping = {'right':'left','left':'right','up':'down','down':'up',}
-        //We reset the beam
-        beamGroup.removeAll(true, true);
-        var maxX = instructionZone.x + instructionZone.getBounds().width;
-        var maxY = instructionZone.y + instructionZone.getBounds().height;
-        var startX = startPoint.x;
-        var startY = startPoint.y;
-        var startDirection = "right";
-        var direction = "right";
-        var x = startX;
-        var y = startY;
-        var beams = 0;//Watchdog
-        var previousBeam = startPoint;
-        while(x > 0 && y > 0 && x < maxX && y < maxY && beams < 200){
-            beams++;
-            //2 - determine if an instruction might change beam direction
-            var previousDirection = direction;
-            for (var toolName in toolsPalette) {
-                var paletteTool = toolsPalette[toolName];
-                for (var i = 0; i < paletteTool.createdInstructions.children.length; i++) {
-                    var createdInstruction = paletteTool.createdInstructions.children[i];
-                    var d = Math.abs(createdInstruction.x - x) + Math.abs(createdInstruction.y - y);
-                    if(d < 20 ){
-                        //console.log("Beam touches instruction: ", d,createdInstruction);
-                        if(["left","right","up","down"].indexOf(createdInstruction.instruction)!=-1){
-                        direction = createdInstruction.instruction;
-                        }
-                    }
-                };
-            };
-            //1 - check that there is no beam at this position (and accept it in some cases - crossing, ....)
-            //TODO
-            var sameBeam = null;
-            beamGroup.forEachAlive(function(beam){
-                if(beam.direction == direction && beam.x == x && beam.y == y){
-                    //We are looping :)
-                    sameBeam = beam;
-                    console.log("Looping !!");
-                }
-            }, this);
-            if(sameBeam){
-                previousBeam.nextBeam = sameBeam;
-                break;
-            }
-            //3 - add beam sprite
-            var beamKind = beamKeyPrefix+direction.charAt(0).toUpperCase() + direction.slice(1);
-            var beamPart = gameStep.add.sprite(x, y, beamKind);
-            beamPart.anchor.set(0.5);
-            beamPart.direction = direction;
-            beamGroup.add(beamPart);
-            previousBeam.nextBeam = beamPart;
-            previousBeam = beamPart;
-            if(previousDirection == direction && previousBeam){
-                var secondHalfKey = secondHaldBeamMapping[direction];
-                var secondHalfBeamKind = beamKeyPrefix+secondHalfKey.charAt(0).toUpperCase() + secondHalfKey.slice(1);
-                var beamSecondHalf = gameStep.add.sprite(0, 0, secondHalfBeamKind);
-                beamSecondHalf.anchor.set(0.5);
-                previousBeam.addChild(beamSecondHalf);
-            }
-            //4 - Move next position
-            if(direction == "right"){
-                x += 32;
-            }
-            if(direction == "left"){
-                x -= 32;
-            }
-            if(direction == "up"){
-                y -= 32;
-            }
-            if(direction == "down"){
-                y += 32;
-            }
-
-        }
-        gameStep.world.sendToBack(beamGroup);
-        gameStep.world.sendToBack(instructionZone);
-    }
 };
