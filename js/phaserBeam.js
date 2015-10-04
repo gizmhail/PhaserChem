@@ -57,8 +57,9 @@ Beam.prototype.traceBeam = function() {
                 var d = Math.abs(createdInstruction.x - x) + Math.abs(createdInstruction.y - y);
                 if(d < 20 ){
                     //console.log("Beam touches instruction: ", d,createdInstruction);
-                    if(["left","right","up","down"].indexOf(createdInstruction.instruction)!=-1){
+                    if(["left","right","up","down","red_left","red_right","red_up","red_down"].indexOf(createdInstruction.instruction)!=-1){
                         direction = createdInstruction.instruction;
+                        direction = direction.replace("red_","");
                     }
                 }else {
                     //console.log(x,y,d);

@@ -2,7 +2,9 @@ var gameStep = function(){
     this.characterSprite = null;
     this.instructionZone = null;
     this.toolsPalette = {};
+    this.redToolsPalette = {};
     this.tools = ["left","right","up","down","in","grabdrop"];
+    this.redTools = ["red_left","red_right","red_up","red_down","red_in","red_grabdrop"];
     this.playButton = null;
     this.inPoint = null;
     this.orbGroup = null;
@@ -15,7 +17,11 @@ gameStep.prototype = {
         // Load this images, available with the associated keys later
         game.load.image('background', 'assets/grid.png');
         for (var i = 0; i < this.tools.length; i++) {
-            var toolName = this.tools[i]
+            var toolName = this.tools[i];
+            game.load.image(toolName, 'assets/'+toolName+'.png?v=2');
+        };
+        for (var i = 0; i < this.redTools.length; i++) {
+            var toolName = this.redTools[i];
             game.load.image(toolName, 'assets/'+toolName+'.png?v=2');
         };
         game.load.image('enter', 'assets/enter.png?v=2');
@@ -41,15 +47,26 @@ gameStep.prototype = {
         this.instructionZone = this.add.tileSprite(50, 50, 1024, 700, 'background');
         for (var i = 0; i < this.tools.length; i++) {
             var toolName = this.tools[i];
-            this.toolsPalette[toolName] = new PaletteTool(1100, 20+i*60, toolName, this.instructionZone, this, toolName, 32);
+            this.toolsPalette[toolName] = new PaletteTool(1180, 20+i*60, toolName, this.instructionZone, this, toolName, 32);
             this.toolsPalette[toolName].onInstructionPlaced = this.onInstructionPlaced;
+        };
+        for (var i = 0; i < this.redTools.length; i++) {
+            var toolName = this.redTools[i];
+            this.redToolsPalette[toolName] = new PaletteTool(1100, 20+i*60, toolName, this.instructionZone, this, toolName.replace("red_",""), 32);
+            this.redToolsPalette[toolName].onInstructionPlaced = this.onInstructionPlaced;
         };
  
         //inPoint
-        this.inPoint = {'x':32*11,'y':32*7};
+        this.inPoint = {'x':32*11,'y':32*12};
         var inGhost = this.add.sprite(this.inPoint.x, this.inPoint.y ,'grabdrop');
         inGhost.alpha = 0.5;
         inGhost.anchor.set(0.5);
+        //redInPoint
+        this.redInPoint = {'x':32*11,'y':32*7};
+        var redInGhost = this.add.sprite(this.redInPoint.x, this.redInPoint.y ,'red_grabdrop');
+        redInGhost.alpha = 0.5;
+        redInGhost.anchor.set(0.5);
+
 
         this.orbGroup = this.add.group();
         this.playButton = game.add.button(400, 10, 'playButton', this.toggleCursors, this);
@@ -57,15 +74,17 @@ gameStep.prototype = {
 
 
         //Beam
-        var beam1 = new Beam(32*6+2, 32*7, this.instructionZone, this.toolsPalette, this.orbGroup, 'target', 'enter', 'beam', this, 32);
+        var beam1 = new Beam(32*6+2, 32*7, this.instructionZone, this.redToolsPalette, this.orbGroup, 'target', 'enter', 'beam', this, 32);
         this.beams.push(beam1);
         beam1.onBeamReset = this.onBeamReset;
         beam1.onBeamCursorOveringInstruction = this.onBeamCursorOveringInstruction;
+        beam1.beamColor = 'red';
         beam1.traceBeam();
         //Beam2
         var beam2 = new Beam(32*6+2, 32*12, this.instructionZone, this.toolsPalette, this.orbGroup, 'targetBlue', 'enter', 'beamBlue', this, 32);
         this.beams.push(beam2);
         beam2.onBeamReset = this.onBeamReset;
+        beam2.beamColor = 'blue';
         beam2.onBeamCursorOveringInstruction = this.onBeamCursorOveringInstruction;
         beam2.traceBeam();
    },
@@ -114,7 +133,14 @@ gameStep.prototype = {
 
     onBeamCursorOveringInstruction: function(beam, x, y, instructionElement, gameStep){
         if (typeof gameStep === 'undefined') { gameStep = this; }
-            console.log("onBeamCursorOveringInstruction",instructionElement);
+            console.log("onBeamCursorOveringInstruction",instructionElement, beam.beamColor);
+        if(instructionElement == "red_in"){
+            console.log("red_in");
+            var orb = gameStep.add.sprite(gameStep.redInPoint.x, gameStep.redInPoint.y, "orb");    
+            orb.anchor.set(0.5);
+            orb.attachedToCursor = null;
+            gameStep.orbGroup.add(orb);
+        }
         if(instructionElement == "in"){
             console.log("in");
             var orb = gameStep.add.sprite(gameStep.inPoint.x, gameStep.inPoint.y, "orb");    
@@ -122,22 +148,18 @@ gameStep.prototype = {
             orb.attachedToCursor = null;
             gameStep.orbGroup.add(orb);
         }
-        if(instructionElement == "grabdrop"){
+        if( (instructionElement == "grabdrop" && beam.beamColor == "blue") || (instructionElement == "red_grabdrop" && beam.beamColor == "red") ){
             var droppingDone = false;
-            for (var i = 0; i < gameStep.beams.length; i++) {
-                var existingBeam = gameStep.beams[i];
-                if(existingBeam.targetCursor.children.length > 0){
-                    // Dropping orb associated with this.beam cursor
-                    var orb = existingBeam.targetCursor.getChildAt(0)
-                    existingBeam.targetCursor.removeChild(orb);
-                    //We put back the orb in the orbs group (it was removed when attached as a sprite child)
-                    gameStep.orbGroup.add(orb);
-                    orb.x = x;
-                    orb.y = y;
-                    droppingDone = true;
-                }
-            };
-        
+            if(beam.targetCursor.children.length > 0){
+                // Dropping orb associated with this.beam cursor
+                var orb = beam.targetCursor.getChildAt(0)
+                beam.targetCursor.removeChild(orb);
+                //We put back the orb in the orbs group (it was removed when attached as a sprite child)
+                gameStep.orbGroup.add(orb);
+                orb.x = x;
+                orb.y = y;
+                droppingDone = true;
+            }        
             if(!droppingDone){
                 // Grabing any orb below a cursor
                 for (var j = 0; j < gameStep.orbGroup.children.length; j++) {
