@@ -39,6 +39,7 @@ gameStep.prototype = {
         game.load.image('playButton', 'assets/play.png?v=2');
         game.load.image('pauseButton', 'assets/pause.png?v=2');
         game.load.image('orb', 'assets/Flameless2.png?v=2');
+        game.load.image('orb2', 'assets/orb2.png?v=2');
 
     },
 
@@ -144,7 +145,7 @@ gameStep.prototype = {
         }
         if(instructionElement == "in"){
             console.log("in");
-            var orb = gameStep.add.sprite(gameStep.inPoint.x, gameStep.inPoint.y, "orb");    
+            var orb = gameStep.add.sprite(gameStep.inPoint.x, gameStep.inPoint.y, "orb2");    
             orb.anchor.set(0.5);
             orb.attachedToCursor = null;
             gameStep.orbGroup.add(orb);
