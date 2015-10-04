@@ -23,7 +23,12 @@ gameStep.prototype = {
         game.load.image('beamRight', 'assets/beamRight2.png?v=2');
         game.load.image('beamDown', 'assets/beamDown2.png?v=2');
         game.load.image('beamLeft', 'assets/beamLeft2.png?v=2');
+        game.load.image('beamBlueUp', 'assets/beamBlueUp2.png?v=2');
+        game.load.image('beamBlueRight', 'assets/beamBlueRight2.png?v=2');
+        game.load.image('beamBlueDown', 'assets/beamBlueDown2.png?v=2');
+        game.load.image('beamBlueLeft', 'assets/beamBlueLeft2.png?v=2');
         game.load.image('target', 'assets/target2.png?v=2');
+        game.load.image('targetBlue', 'assets/targetBlue.png?v=2');
         game.load.image('playButton', 'assets/play.png?v=2');
         game.load.image('pauseButton', 'assets/pause.png?v=2');
         game.load.image('orb', 'assets/Flameless2.png?v=2');
@@ -58,7 +63,7 @@ gameStep.prototype = {
         beam1.onBeamCursorOveringInstruction = this.onBeamCursorOveringInstruction;
         beam1.traceBeam();
         //Beam2
-        var beam2 = new Beam(32*6+2, 32*12, this.instructionZone, this.toolsPalette, this.orbGroup, 'target', 'enter', 'beam', this, 32);
+        var beam2 = new Beam(32*6+2, 32*12, this.instructionZone, this.toolsPalette, this.orbGroup, 'targetBlue', 'enter', 'beamBlue', this, 32);
         this.beams.push(beam2);
         beam2.onBeamReset = this.onBeamReset;
         beam2.onBeamCursorOveringInstruction = this.onBeamCursorOveringInstruction;
