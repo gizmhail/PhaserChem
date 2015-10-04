@@ -7,24 +7,29 @@
  * @param instruction: id of the palette instruction, it is also the image key 
  * @param instructionZone: the background sprite on which instruction instance live (deleted outside of it)
  * @param gameStep: current game step
- * @pram displayName(optional): name displayed below the palette sprite and instruction instances. Equal to instruction if not set
+ * @param displayName(optional): name displayed below the palette sprite and instruction instances. Equal to instruction if not set
+ * @param scale (optional): scale for the paeltte tool and created instruction sprites
+ * @param textOffset (optional): vertical position of the description text displayed below the sprite
  */
-var PaletteTool = function(x, y, instruction, instructionZone, gameStep, displayName){
+var PaletteTool = function(x, y, instruction, instructionZone, gameStep, displayName, snapSize, textOffset){
     if (typeof displayName === 'undefined') { displayName = instruction; }
+    if (typeof snapSize === 'undefined') { snapSize = 32; }
     Phaser.Sprite.call(this, gameStep.game, x, y, instruction);
     this.gameStep = gameStep;
     this.game = gameStep.game;
     this.game.add.existing(this);
+    if (typeof textOffset === 'undefined') { textOffset = this.height - 10; }
     this.displayName = displayName;
     this.instructionZone = instructionZone;
     this.instruction = instruction;
-    this.scale.set(0.25);
+    this.textOffset = textOffset;
     this.anchor.set(0.5);
+    this.snapSize = snapSize;
     this.inputEnabled = true;
     this.createdInstructions = this.game.add.group();
     this.events.onInputDown.add(this.toolsPaletteClick, this);
     if(displayName && displayName != ""){
-        var display = this.gameStep.add.text(0,90,displayName,{fill: "#FFFFFF", font: "46px Arial"});
+        var display = this.gameStep.add.text(0,textOffset,displayName,{fill: "#FFFFFF", font: "13px Arial"});
         display.anchor.set(0.5);
         this.addChild(display);
     }
@@ -52,8 +57,7 @@ var InstructionElement = function(x, y, paletteTool, gameStep){
     this.paletteTool = paletteTool;
     this.inputEnabled = true;
     this.input.enableDrag(true);
-    this.input.enableSnap(32, 32, true, true);
-    this.scale.set(0.25);
+    this.input.enableSnap(paletteTool.snapSize, paletteTool.snapSize, true, true);
     this.anchor.set(0.5);
 
     this.events.onDragStart.add(this.onInstructionElementDragStart, this);
@@ -68,7 +72,7 @@ var InstructionElement = function(x, y, paletteTool, gameStep){
     // Probably due to us messing with startDrag ;)
     this.game.input.onUp.add(this.onInstructionElementInputUp, this);
     if(paletteTool.displayName && paletteTool.displayName != ""){
-        var display = this.gameStep.add.text(0,90,paletteTool.displayName,{fill: "#FFFFFF", font: "46px Arial"});
+        var display = this.gameStep.add.text(0,this.paletteTool.textOffset,paletteTool.displayName,{fill: "#FFFFFF", font: "13px Arial"});
         display.anchor.set(0.5);
         this.addChild(display);
     }
@@ -79,7 +83,7 @@ InstructionElement.prototype.constructor = InstructionElement;
 // Picking an instruction element
 InstructionElement.prototype.onInstructionElementDragStart = function (){
     //console.log("onInstructionElementDragStart");
-    this.scale.set(0.8*0.25);
+    this.scale.set(0.8);
     this.alpha = 0.5;
 };
 
@@ -87,14 +91,13 @@ InstructionElement.prototype.onInstructionElementDragStart = function (){
 InstructionElement.prototype.onInstructionElementDragStop = function (){
     //TODO Add tween to restored size/alpha
     //console.log("onInstructionElementDragStop");
-    this.scale.set(0.25);
     this.alpha = 1;
     if(!Phaser.Rectangle.intersects(this.paletteTool.instructionZone.getBounds(), this.getBounds())){
         this.paletteTool.createdInstructions.remove(this);
         this.destroy();
     }
     if(this.paletteTool.onInstructionPlaced){
-        this.paletteTool.onInstructionPlaced(this.gameStep);
+        this.paletteTool.onInstructionPlaced(this, this.gameStep);
     }
 };
 

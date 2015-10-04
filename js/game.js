@@ -1,5 +1,3 @@
-
-
 var gameStep = function(){
     this.characterSprite = null;
     this.instructionZone = null;
@@ -21,18 +19,17 @@ gameStep.prototype = {
         game.load.image('background', 'assets/grid.png');
         for (var i = 0; i < this.tools.length; i++) {
             var toolName = this.tools[i]
-            game.load.image(toolName, 'assets/'+toolName+'.png?v=1');
+            game.load.image(toolName, 'assets/'+toolName+'.png?v=2');
         };
-        game.load.image('enter', 'assets/enter.png');
-        game.load.image('beamUp', 'assets/beamUp2.png');
-        game.load.image('beamRight', 'assets/beamRight2.png');
-        game.load.image('beamDown', 'assets/beamDown2.png');
-        game.load.image('beamLeft', 'assets/beamLeft2.png');
-        game.load.image('target', 'assets/target.png');
-        game.load.image('playButton', 'assets/play.png');
-        game.load.image('pauseButton', 'assets/pause.png');
-        game.load.image('in', 'assets/in.png');
-        game.load.image('orb', 'assets/Flameless2.png');
+        game.load.image('enter', 'assets/enter.png?v=2');
+        game.load.image('beamUp', 'assets/beamUp2.png?v=2');
+        game.load.image('beamRight', 'assets/beamRight2.png?v=2');
+        game.load.image('beamDown', 'assets/beamDown2.png?v=2');
+        game.load.image('beamLeft', 'assets/beamLeft2.png?v=2');
+        game.load.image('target', 'assets/target2.png?v=2');
+        game.load.image('playButton', 'assets/play.png?v=2');
+        game.load.image('pauseButton', 'assets/pause.png?v=2');
+        game.load.image('orb', 'assets/Flameless2.png?v=2');
 
     },
     // Called after preload - create sprites,... using assets here
@@ -41,20 +38,17 @@ gameStep.prototype = {
         this.instructionZone = this.add.tileSprite(50, 50, 1024, 700, 'background');
         for (var i = 0; i < this.tools.length; i++) {
             var toolName = this.tools[i];
-            this.toolsPalette[toolName] = new PaletteTool(1100, 100+i*60, toolName, this.instructionZone, this);
-            this.toolsPalette[toolName].onInstructionPlaced = this.traceBeam;
+            this.toolsPalette[toolName] = new PaletteTool(1110, 100+i*60, toolName, this.instructionZone, this, toolName, 32);
+            this.toolsPalette[toolName].onInstructionPlaced = this.onInstructionPlaced;
         };
         this.inPoint = {'x':32*11,'y':32*7};
         var inGhost = this.add.sprite(this.inPoint.x, this.inPoint.y ,'grabdrop');
         inGhost.alpha = 0.5;
         inGhost.anchor.set(0.5);
-        inGhost.scale.set(0.25);
         this.startPoint = this.add.sprite(32*6+2, 32*7,'enter');
         this.targetCursor = this.add.sprite(32*6+2, 32*7,'target');
         this.startPoint.anchor.set(0.5);
         this.targetCursor.anchor.set(0.5);
-        this.targetCursor.scale.set(2);
-        this.startPoint.scale.set(0.25);
         this.beamGroup = this.add.group();
         this.orbGroup = this.add.group();
         this.traceBeam(this);
@@ -77,22 +71,32 @@ gameStep.prototype = {
     },
     
     // --------------------------------------
+
+    onInstructionPlaced: function(instructionElement, gameStep){
+        if (typeof gameStep === 'undefined') { gameStep = this; }
+        gameStep.stopCursor();
+        gameStep.traceBeam(gameStep);
+    },
     //TODO: Move the 3 methods below in a beam class, to easily support multiple beams
 
+    stopCursor: function(){
+        this.cursorMoving = false;
+        if(this.targetCursor.beamTween){
+            this.targetCursor.beamTween.stop();
+        }
+        this.playButton.loadTexture("playButton");
+        this.targetCursor.x = this.startPoint.x;
+        this.targetCursor.y = this.startPoint.y;
+        console.log("Reset:", this.startPoint.x, this.startPoint.y);
+        //Reset all orb
+        //Orbs attached to cursor need to be detached
+        this.targetCursor.removeChildren();
+        this.orbGroup.removeAll(true, true);
+
+    },
     playCursor: function(){
         if(this.cursorMoving){
-            this.cursorMoving = false;
-            if(this.targetCursor.beamTween){
-                this.targetCursor.beamTween.stop();
-            }
-            this.playButton.loadTexture("playButton");
-            this.targetCursor.x = this.startPoint.x;
-            this.targetCursor.y = this.startPoint.y;
-            console.log("Reset:", this.startPoint.x, this.startPoint.y);
-            //Reset all orb
-            //Orbs attached to cursor need to be detached
-            this.targetCursor.removeChildren();
-            this.orbGroup.removeAll(true, true);
+            this.stopCursor();
             return;
         }
         this.playButton.loadTexture("pauseButton");
@@ -126,7 +130,6 @@ gameStep.prototype = {
                                 gameStep.orbGroup.add(orb);
                                 orb.x = x;
                                 orb.y = y;
-                                orb.scale.set(1);
                             }else  {
                                 for (var j = 0; j < gameStep.orbGroup.children.length; j++) {
                                     var orb = gameStep.orbGroup.children[j];
@@ -134,7 +137,6 @@ gameStep.prototype = {
                                     if(d < 20 ){
                                         orb.attachedToCursor = this.targetCursor;
                                         this.targetCursor.addChild(orb);
-                                        orb.scale.set(0.5);
                                         orb.x = 0;
                                         orb.y = 0;
                                     }
