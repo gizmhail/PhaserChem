@@ -8,6 +8,7 @@ var gameStep = function(){
     this.playButton = null;
     this.inPoint = null;
     this.orbGroup = null;
+    this.infoText = null;
     this.beams = [];
 };
 
@@ -74,26 +75,31 @@ gameStep.prototype = {
         this.playButton = game.add.button(400, 10, 'playButton', this.toggleCursors, this);
         this.playButton.scale.set(0.8);
 
-
         //Beam
         var beam1 = new Beam(32*6+2, 32*7, this.instructionZone, this.redToolsPalette, this.orbGroup, 'target', 'red_enter', 'beam', this, 32);
         this.beams.push(beam1);
         beam1.onBeamReset = this.onBeamReset;
+        beam1.onBeamTraced = this.onBeamTraced;
         beam1.onBeamCursorOveringInstruction = this.onBeamCursorOveringInstruction;
         beam1.beamColor = 'red';
         beam1.traceBeam();
+        beam1.onBeamCursorMoved = this.onBeamCursorMoved;
         //Beam2
         var beam2 = new Beam(32*6+2, 32*12, this.instructionZone, this.toolsPalette, this.orbGroup, 'targetBlue', 'enter', 'beamBlue', this, 32);
         this.beams.push(beam2);
         beam2.onBeamReset = this.onBeamReset;
+        beam2.onBeamTraced = this.onBeamTraced;
+        beam2.onBeamCursorMoved = this.onBeamCursorMoved;
         beam2.beamColor = 'blue';
         beam2.onBeamCursorOveringInstruction = this.onBeamCursorOveringInstruction;
         beam2.traceBeam();
+
+
    },
 
     // Called for each refresh
     update: function (){
-   
+
     },
 
     // Called after the renderer rendered - usefull for debug rendering, ...
@@ -107,16 +113,65 @@ gameStep.prototype = {
 
     },
 
+    orbCollisionTest: function(){
+        var allOrbs = [];
+        for (var j = 0; j < this.orbGroup.children.length; j++) {
+            var orb = this.orbGroup.children[j];
+            allOrbs.push(orb);
+        }
+        for (var i = 0; i < this.beams.length; i++) {
+            var beam = this.beams[i];
+            if(beam.targetCursor.carriedOrb){
+                allOrbs.push(beam.targetCursor.carriedOrb);
+            }
+        };  
+        for (var i = 0; i < this.beams.length; i++) {
+            var beam = this.beams[i];
+            if(beam.targetCursor.carriedOrb){
+                var boundsA = beam.targetCursor.carriedOrb.getBounds();
+                for (var j = 0; j < allOrbs.length; j++) {
+                    var orb = allOrbs[j];
+                    if(beam.targetCursor.carriedOrb == orb){
+                        continue;
+                    }
+
+                    var boundsB = orb.getBounds();
+
+                    var collision = Phaser.Rectangle.intersects(boundsA, boundsB);
+                    if(collision){
+                        var gameStep = this;
+                        if(this.infoText){
+                            this.infoText.destroy();
+                        }
+                        this.infoText = this.add.text(200, 10, "Collision !!!!", {fill: "#FFFFFF", font: "13px Arial"});
+                        this.game.paused = true;
+                        window.setTimeout(function(){
+                            gameStep.game.paused = false;
+                            gameStep.stopCursors();
+                            gameStep.infoText.destroy();
+                        }, 2000);
+                    }
+                }
+
+            }
+        };         
+    },
+
     // ------ Interface controls -----------------------------------
+
+    stopCursors: function(){
+        this.cursorMoving = false;
+        this.playButton.loadTexture("playButton");
+        for (var i = 0; i < this.beams.length; i++) {
+            var beam = this.beams[i];
+            beam.stopCursor();
+        };
+
+    },
 
     toggleCursors: function(){
         if(this.cursorMoving){
-            this.cursorMoving = false;
-            this.playButton.loadTexture("playButton");
-            for (var i = 0; i < this.beams.length; i++) {
-                var beam = this.beams[i];
-                beam.stopCursor();
-            };
+            this.stopCursors();
             return;
         }
         this.cursorMoving = true;
@@ -129,7 +184,15 @@ gameStep.prototype = {
 
     // ------ Beam methods --------------------------------
 
+    onBeamCursorMoved: function(beam,gameStep){
+        gameStep.orbCollisionTest();
+    },
+
     onBeamReset: function(beam){
+        if(beam.targetCursor.carriedOrb){
+            beam.targetCursor.carriedOrb.destroy();
+            beam.targetCursor.carriedOrb = null;
+        }
         this.orbGroup.removeAll(true, true);
     },
 
@@ -139,6 +202,7 @@ gameStep.prototype = {
         if(instructionElement == "red_in"){
             console.log("red_in");
             var orb = gameStep.add.sprite(gameStep.redInPoint.x, gameStep.redInPoint.y, "orb");    
+            orb.orbKind = "orb";
             orb.anchor.set(0.5);
             orb.attachedToCursor = null;
             gameStep.orbGroup.add(orb);
@@ -146,6 +210,7 @@ gameStep.prototype = {
         if(instructionElement == "in"){
             console.log("in");
             var orb = gameStep.add.sprite(gameStep.inPoint.x, gameStep.inPoint.y, "orb2");    
+            orb.orbKind = "orb2";
             orb.anchor.set(0.5);
             orb.attachedToCursor = null;
             gameStep.orbGroup.add(orb);
@@ -156,6 +221,7 @@ gameStep.prototype = {
                 // Dropping orb associated with this.beam cursor
                 var orb = beam.targetCursor.getChildAt(0)
                 beam.targetCursor.removeChild(orb);
+                beam.targetCursor.carriedOrb = null;
                 //We put back the orb in the orbs group (it was removed when attached as a sprite child)
                 gameStep.orbGroup.add(orb);
                 orb.x = x;
@@ -169,6 +235,7 @@ gameStep.prototype = {
                     var d = Math.abs(orb.x - x) + Math.abs(orb.y - y);
                     if(d < 20 ){
                         orb.attachedToCursor = beam.targetCursor;
+                        beam.targetCursor.carriedOrb = orb;
                         beam.targetCursor.addChild(orb);
                         orb.x = 0;
                         orb.y = 0;
@@ -176,6 +243,21 @@ gameStep.prototype = {
                 }
             }    
         }
+    },
+
+    onBeamTraced: function(beam, gameStep){
+        return
+        // DEBUG quick tests
+        var orb = gameStep.add.sprite(gameStep.redInPoint.x, gameStep.redInPoint.y, "orb");    
+        orb.orbKind = "orb";
+        orb.anchor.set(0.5);
+        orb.attachedToCursor = null;
+        gameStep.orbGroup.add(orb);
+        orb = gameStep.add.sprite(gameStep.inPoint.x, gameStep.inPoint.y, "orb2");    
+        orb.orbKind = "orb";
+        orb.anchor.set(0.5);
+        orb.attachedToCursor = null;
+        gameStep.orbGroup.add(orb);
     },
     
     // ------ Tools palette methods --------------------------------

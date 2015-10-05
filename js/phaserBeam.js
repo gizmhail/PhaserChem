@@ -11,6 +11,7 @@ var Beam = function(x, y, instructionZone, toolsPalette, orbGroup, cursorKey, st
     this.startPoint.anchor.set(0.5);
     this.targetCursor = this.gameStep.add.sprite(x, y, cursorKey);
     this.targetCursor.anchor.set(0.5);
+    this.targetCursor.carriedOrb = null;
     this.beamKeyPrefix = beamKeyPrefix;
     this.instructionZone = instructionZone;
     this.toolsPalette = toolsPalette;
@@ -109,6 +110,9 @@ Beam.prototype.traceBeam = function() {
     }
     this.gameStep.world.sendToBack(this);
     this.gameStep.world.sendToBack(instructionZone);
+    if(this.onBeamTraced){
+        this.onBeamTraced(this,this.gameStep);
+    }
 };
 
 Beam.prototype.moveCursor = function(previousBeam){
@@ -153,6 +157,9 @@ Beam.prototype.moveCursor = function(previousBeam){
     this.targetCursor.beamTween.to({'x':previousBeam.nextBeam.x,'y':previousBeam.nextBeam.y}, cursorMoveTime);    
     this.targetCursor.beamTween.onComplete.add(function(){
         //console.log('Done tween');
+        if(this.onBeamCursorMoved){
+            this.onBeamCursorMoved(this, this.gameStep);
+        }
         this.moveCursor(previousBeam.nextBeam);
     }, this);
     this.targetCursor.beamTween.start();
