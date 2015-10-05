@@ -150,7 +150,7 @@ Beam.prototype.moveCursor = function(previousBeam){
         return;
     }
     if(!previousBeam.nextBeam){
-        console.log('no next');
+        //console.log('no next');
         return;
     }
     this.targetCursor.beamTween = this.gameStep.add.tween(this.targetCursor);

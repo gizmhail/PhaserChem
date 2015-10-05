@@ -3,8 +3,8 @@ var gameStep = function(){
     this.instructionZone = null;
     this.toolsPalette = {};
     this.redToolsPalette = {};
-    this.tools = ["left","right","up","down","in","grabdrop"];
-    this.redTools = ["red_left","red_right","red_up","red_down","red_in","red_grabdrop"];
+    this.tools = ["left","right","up","down","in","grabdrop","exit"];
+    this.redTools = ["red_left","red_right","red_up","red_down","red_in","red_grabdrop","red_exit"];
     this.playButton = null;
     this.inPoint = null;
     this.orbGroup = null;
@@ -50,7 +50,7 @@ gameStep.prototype = {
         this.instructionZone = this.add.tileSprite(50, 50, 1024, 700, 'background');
         for (var i = 0; i < this.tools.length; i++) {
             var toolName = this.tools[i];
-            this.toolsPalette[toolName] = new PaletteTool(1180, 20+i*60, toolName, this.instructionZone, this, toolName, 32);
+            this.toolsPalette[toolName] = new PaletteTool(1170, 20+i*60, toolName, this.instructionZone, this, toolName, 32);
             this.toolsPalette[toolName].onInstructionPlaced = this.onInstructionPlaced;
         };
         for (var i = 0; i < this.redTools.length; i++) {
@@ -60,15 +60,37 @@ gameStep.prototype = {
         };
  
         //inPoint
-        this.inPoint = {'x':32*11,'y':32*12};
+        this.inPoint = {'x':32*11,'y':32*12,'color':'blue'};
         var inGhost = this.add.sprite(this.inPoint.x, this.inPoint.y ,'grabdrop');
         inGhost.alpha = 0.5;
         inGhost.anchor.set(0.5);
+        var display = this.add.text(0,30,"in zone",{fill: "#FFFFFF", font: "13px Arial"});
+        display.anchor.set(0.5);
+        inGhost.addChild(display);
         //redInPoint
-        this.redInPoint = {'x':32*11,'y':32*7};
+        this.redInPoint = {'x':32*11,'y':32*7,'color':'red'};
         var redInGhost = this.add.sprite(this.redInPoint.x, this.redInPoint.y ,'red_grabdrop');
         redInGhost.alpha = 0.5;
         redInGhost.anchor.set(0.5);
+        display = this.add.text(0,30,"in zone",{fill: "#FFFFFF", font: "13px Arial"});
+        display.anchor.set(0.5);
+        redInGhost.addChild(display);
+        //outPoint
+        this.outPoint = {'x':32*26,'y':32*12,'color':'blue'};
+        var outGhost = this.add.sprite(this.outPoint.x, this.outPoint.y ,'grabdrop');
+        outGhost.alpha = 0.5;
+        outGhost.anchor.set(0.5);
+        display = this.add.text(0,30,"exit zone",{fill: "#FFFFFF", font: "13px Arial"});
+        display.anchor.set(0.5);
+        outGhost.addChild(display);
+        //redOutPoint
+        this.redOutPoint = {'x':32*26,'y':32*7,'color':'red'};
+        outGhost = this.add.sprite(this.redOutPoint.x, this.redOutPoint.y ,'red_grabdrop');
+        outGhost.alpha = 0.5;
+        outGhost.anchor.set(0.5);
+        display = this.add.text(0,30,"exit zone",{fill: "#FFFFFF", font: "13px Arial"});
+        display.anchor.set(0.5);
+        outGhost.addChild(display);
 
 
         this.orbGroup = this.add.group();
@@ -157,6 +179,9 @@ gameStep.prototype = {
         };         
     },
 
+    orbExit: function(orb, exitPoint,gameStep){
+        console.log("Exiting:", orb.orbKind, exitPoint.color);
+    },
     // ------ Interface controls -----------------------------------
 
     stopCursors: function(){
@@ -198,9 +223,8 @@ gameStep.prototype = {
 
     onBeamCursorOveringInstruction: function(beam, x, y, instructionElement, gameStep){
         if (typeof gameStep === 'undefined') { gameStep = this; }
-            console.log("onBeamCursorOveringInstruction",instructionElement, beam.beamColor);
+        //console.log("onBeamCursorOveringInstruction",instructionElement, beam.beamColor);
         if(instructionElement == "red_in"){
-            console.log("red_in");
             var orb = gameStep.add.sprite(gameStep.redInPoint.x, gameStep.redInPoint.y, "orb");    
             orb.orbKind = "orb";
             orb.anchor.set(0.5);
@@ -208,12 +232,31 @@ gameStep.prototype = {
             gameStep.orbGroup.add(orb);
         }
         if(instructionElement == "in"){
-            console.log("in");
             var orb = gameStep.add.sprite(gameStep.inPoint.x, gameStep.inPoint.y, "orb2");    
             orb.orbKind = "orb2";
             orb.anchor.set(0.5);
             orb.attachedToCursor = null;
             gameStep.orbGroup.add(orb);
+        }
+        if(instructionElement == "exit"){
+            for (var j = 0; j < gameStep.orbGroup.children.length; j++) {
+                var orb = gameStep.orbGroup.children[j];
+                var d = Math.abs(orb.x - gameStep.outPoint.x) + Math.abs(orb.y - gameStep.outPoint.y);
+                if(d < 20 ){
+                    gameStep.orbExit(orb, gameStep.outPoint, gameStep);
+                    orb.destroy();  
+                }
+            }
+        }
+        if(instructionElement == "red_exit"){
+            for (var j = 0; j < gameStep.orbGroup.children.length; j++) {
+                var orb = gameStep.orbGroup.children[j];
+                var d = Math.abs(orb.x - gameStep.redOutPoint.x) + Math.abs(orb.y - gameStep.redOutPoint.y);
+                if(d < 20 ){
+                    gameStep.orbExit(orb, gameStep.redOutPoint, gameStep);
+                    orb.destroy();  
+                }
+            }
         }
         if( (instructionElement == "grabdrop" && beam.beamColor == "blue") || (instructionElement == "red_grabdrop" && beam.beamColor == "red") ){
             var droppingDone = false;
