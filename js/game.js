@@ -3,10 +3,10 @@ var gameStep = function(){
     this.instructionZone = null;
     this.toolsPalette = {};
     this.redToolsPalette = {};
-    this.tools = ["left","right","up","down","in","grabdrop","exit"];
-    this.redTools = ["red_left","red_right","red_up","red_down","red_in","red_grabdrop","red_exit"];
-    this.blueObjectives = ["orb","orb"];
-    this.redObjectives = ["orb2","orb2"];
+    this.tools = ["left","right","up","down","in","grabdrop","exit","sync"];
+    this.redTools = ["red_left","red_right","red_up","red_down","red_in","red_grabdrop","red_exit","red_sync"];
+    this.blueObjectives = [];
+    this.redObjectives = [];
     this.playButton = null;
     this.inPoint = null;
     this.orbGroup = null;
@@ -14,6 +14,7 @@ var gameStep = function(){
     this.beams = [];
     this.blueGoalSprites = [];
     this.redGoalSprites = [];
+        this.inSync = {'redFreezed':null,'blueFreezed':null};
 };
 
 gameStep.prototype = { 
@@ -50,6 +51,9 @@ gameStep.prototype = {
 
     // Called after preload - create sprites,... using assets here
     create: function () {
+        // Load level design
+        this.loadObjectives();
+
         //this.backgroundSprite = tutorialGame.add.sprite(0, 0, 'background');
         this.instructionZone = this.add.tileSprite(50, 50, 1024, 700, 'background');
         for (var i = 0; i < this.tools.length; i++) {
@@ -104,7 +108,6 @@ gameStep.prototype = {
 
         //Orbs
         this.orbGroup = this.add.group();
-
         //UI
         this.playButton = game.add.button(400, 10, 'playButton', this.toggleCursors, this);
         this.playButton.scale.set(0.8);
@@ -128,11 +131,25 @@ gameStep.prototype = {
         beam2.onBeamCursorOveringInstruction = this.onBeamCursorOveringInstruction;
         beam2.traceBeam();
 
-
-        //Initial state
+        //Debug
+        //Initial state (for demo purposes)
         var addInitialStateInstruction = false;
         if(addInitialStateInstruction){
-            var instruction = new InstructionElement(32*20+2, 32*7, this.redToolsPalette["red_up"], this);
+            var ins = null;
+            // Red beam
+            ins = new InstructionElement(this.redInPoint.x - 2*32, this.redInPoint.y, this.redToolsPalette["red_in"], this);
+            ins = new InstructionElement(this.redInPoint.x, this.redInPoint.y, this.redToolsPalette["red_grabdrop"], this);
+            ins = new InstructionElement(32*26+2, 32*7, this.redToolsPalette["red_down"], this);
+            ins = new InstructionElement(this.outPoint.x, this.outPoint.y, this.redToolsPalette["red_grabdrop"], this);
+            ins = new InstructionElement(this.outPoint.x, this.outPoint.y + 1*32, this.redToolsPalette["red_left"], this);
+            ins = new InstructionElement(beam2.startPoint.x - 2*32, beam2.startPoint.y + 1*32, this.redToolsPalette["red_up"], this);
+            ins = new InstructionElement(beam1.startPoint.x - 2*32, beam1.startPoint.y, this.redToolsPalette["red_right"], this);
+            // Blue beam
+            ins = new InstructionElement(this.outPoint.x + 2*32, this.outPoint.y, this.toolsPalette["up"], this);
+            ins = new InstructionElement(this.outPoint.x + 2*32, this.outPoint.y - 5*32, this.toolsPalette["exit"], this);
+            ins = new InstructionElement(this.outPoint.x + 2*32, this.outPoint.y - 6*32, this.toolsPalette["left"], this);
+            ins = new InstructionElement(beam1.startPoint.x - 1*32, beam1.startPoint.y - 1*32, this.toolsPalette["down"], this);
+            ins = new InstructionElement(beam2.startPoint.x - 1*32, beam2.startPoint.y , this.toolsPalette["right"], this);
             //We retrace the beams
             beam1.traceBeam();
             beam2.traceBeam();
@@ -155,6 +172,14 @@ gameStep.prototype = {
 
     },
 
+    // -------- Level design -----------
+
+    loadObjectives: function(){
+        this.blueObjectives = ["orb","orb"];
+        this.redObjectives = ["orb2","orb2"];
+    },
+
+    // -------- Game logic -----------
     resetTry: function(gameStep){
         gameStep.stopCursors();
         if(gameStep.infoText){
@@ -231,11 +256,23 @@ gameStep.prototype = {
         }, 2000);
     },
 
+    trySuccess: function(){
+        var gameStep = this;
+        this.infoText = this.add.text(400, 100, "CONGRATULATIONS !!!", {fill: "#FF6600", font: "43px Arial"});
+        this.game.paused = true;
+        window.setTimeout(function(){
+            gameStep.game.paused = false;
+            gameStep.resetTry(gameStep);
+        }, 10000);
+    },
+
     orbExit: function(orb, exitPoint, gameStep){
         console.log("Exiting:", orb.orbKind, exitPoint.color);
         var impactedGoals = this.blueGoalSprites;
+        var otherGoals = this.redGoalSprites;
         if(exitPoint.color == 'red'){
             impactedGoals = this.redGoalSprites;
+            otherGoals = this.blueGoalSprites;
         }
         for (var i = 0; i < impactedGoals.length; i++) {
             var goal = impactedGoals[i];
@@ -247,6 +284,17 @@ gameStep.prototype = {
                 // We delievered the proper orb !!
                 goal.alpha = 1;
                 goal.achieved = true;
+                if(i == (impactedGoals.length - 1)){
+                    // All this goal line is full (congrats !)
+                    if(otherGoals.length == 0){
+                        gameStep.trySuccess();
+                    }else{
+                        var otherLastGoal = otherGoals[otherGoals.length -1];
+                        if(otherLastGoal.achieved = true){
+                            gameStep.trySuccess();
+                        }                        
+                    }
+                }
                 break;
             }else{
                 this.tryFailure("Bad orb :'( ("+orb.orbKind+") instead of "+goal.goal);
@@ -329,6 +377,34 @@ gameStep.prototype = {
                 }
             }
         }
+        if(instructionElement == "sync"){
+            if(gameStep.inSync.redFreezed){
+                console.log("Unfreezing beam "+gameStep.inSync.redFreezed.beamColor);
+                gameStep.inSync.redFreezed.freezedForSync = false;
+                //We skip the current instruction...as it is a freeze ;)
+                Beam.prototype.moveCursor.call(gameStep.inSync.redFreezed, null, true);
+                gameStep.inSync.redFreezed = null;
+            }else{
+                gameStep.inSync.blueFreezed = beam;
+                console.log("Freezing beam "+gameStep.inSync.blueFreezed.beamColor);
+                gameStep.inSync.blueFreezed.freezedForSync = true;
+            }
+
+        }
+        if(instructionElement == "red_sync"){
+            if(gameStep.inSync.blueFreezed){
+                console.log("Unfreezing beam "+gameStep.inSync.blueFreezed.beamColor);
+                gameStep.inSync.blueFreezed.freezedForSync = false;
+                //We skip the current instruction...as it is a freeze ;)
+                Beam.prototype.moveCursor.call(gameStep.inSync.blueFreezed, null, true);
+                gameStep.inSync.blueFreezed = null;
+            }else{
+                gameStep.inSync.redFreezed = beam;
+                console.log("Freezing beam "+gameStep.inSync.redFreezed.beamColor);
+                gameStep.inSync.redFreezed.freezedForSync = true;
+            }
+
+        }
         if( (instructionElement == "grabdrop" && beam.beamColor == "blue") || (instructionElement == "red_grabdrop" && beam.beamColor == "red") ){
             var droppingDone = false;
             if(beam.targetCursor.children.length > 0){
@@ -360,18 +436,6 @@ gameStep.prototype = {
     },
 
     onBeamTraced: function(beam, gameStep){
-        return;
-        // DEBUG quick tests
-        var orb = gameStep.add.sprite(gameStep.redInPoint.x, gameStep.redInPoint.y, "orb");    
-        orb.orbKind = "orb";
-        orb.anchor.set(0.5);
-        orb.attachedToCursor = null;
-        gameStep.orbGroup.add(orb);
-        orb = gameStep.add.sprite(gameStep.inPoint.x, gameStep.inPoint.y, "orb2");    
-        orb.orbKind = "orb";
-        orb.anchor.set(0.5);
-        orb.attachedToCursor = null;
-        gameStep.orbGroup.add(orb);
     },
     
     // ------ Tools palette methods --------------------------------

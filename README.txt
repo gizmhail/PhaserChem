@@ -18,6 +18,8 @@ https://commons.wikimedia.org/wiki/Category:Nuvola_SVG_stock
 http://opengameart.org/content/lasers-and-beams
 * Orbs
 http://opengameart.org/content/shiny-orbs-64x64
+* Sky
+http://opengameart.org/content/cartoony-sky
 
 ________________________________________
 

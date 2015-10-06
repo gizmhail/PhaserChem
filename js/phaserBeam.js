@@ -17,6 +17,7 @@ var Beam = function(x, y, instructionZone, toolsPalette, orbGroup, cursorKey, st
     this.toolsPalette = toolsPalette;
     this.orbGroup = orbGroup;
     this.cursorMoving = false;
+    this.freezedForSync = false;
     //TODO Remove once sprite have proper sizes
 };
 Beam.prototype = Object.create(Phaser.Group.prototype);
@@ -115,12 +116,13 @@ Beam.prototype.traceBeam = function() {
     }
 };
 
-Beam.prototype.moveCursor = function(previousBeam){
+Beam.prototype.moveCursor = function(previousBeam, skipInstruction){
     var cursorMoveTime = 200;
     var x = this.targetCursor.x;
     var y = this.targetCursor.y;
     //Actions
-    for (var toolName in this.toolsPalette) {
+    if(!skipInstruction){
+        for (var toolName in this.toolsPalette) {
             var paletteTool = this.toolsPalette[toolName];
             for (var i = 0; i < paletteTool.createdInstructions.children.length; i++) {
                 var createdInstruction = paletteTool.createdInstructions.children[i];
@@ -134,10 +136,17 @@ Beam.prototype.moveCursor = function(previousBeam){
                     }
                 }
             };
-        };
+    };
+    }
+
+    if(this.freezedForSync){
+        //We wait for sync
+        console.log("Beam "+this.beamColor+" freezed");
+        return;
+    }
 
     //Move cursor
-    if (typeof previousBeam === 'undefined') { 
+    if (typeof previousBeam === 'undefined' || previousBeam == null) { 
         this.forEachAlive(function(beam){
             if(beam.x == x && beam.y == y){
                 previousBeam = beam;

@@ -7,20 +7,22 @@ menu.prototype = {
     // Assets loading - do not use asssets here
     preload: function () {
         // Load this images, available with the associated keys later
-        tutorialGame.load.image('background', 'assets/background.jpg');
+        this.load.image('background', 'assets/background.jpg');
     },
     // Called after preload - create sprites,... using assets here
     create: function () {
-        this.backgroundSprite = tutorialGame.add.sprite(0, 0, 'background');
+        this.backgroundSprite = this.add.sprite(0, 0, 'background');
         var style = { font: "45px Arial", fill: "#ff6600", align: "center" }
         var i = 1;
-        while(i<=5){
-            var text = tutorialGame.add.text(tutorialGame.world.centerX, i*60, "Game - step "+i, style);
+        var maxLevel = 3;
+        while(i <= maxLevel){
+            var text = this.add.text(this.world.centerX, i*60, "Level "+i, style);
             text.inputEnabled = true;
             text.anchor.set(.5,.5);
-            text.events.onInputDown.add(this.stateClick(i), this);
+            text.events.onInputDown.add(this.levelClick(i), this);
             i++;
         }
+
     },
     // Called for each refresh
     update: function (){
@@ -31,9 +33,9 @@ menu.prototype = {
     
     },
 
-    stateClick: function(index){
+    levelClick: function(index){
         return function (){
-            tutorialGame.state.start("GameStateStep"+index);
+            this.state.start("Level"+index);
         };
     }
 };
