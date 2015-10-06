@@ -5,11 +5,15 @@ var gameStep = function(){
     this.redToolsPalette = {};
     this.tools = ["left","right","up","down","in","grabdrop","exit"];
     this.redTools = ["red_left","red_right","red_up","red_down","red_in","red_grabdrop","red_exit"];
+    this.blueObjectives = ["orb","orb"];
+    this.redObjectives = ["orb2","orb2"];
     this.playButton = null;
     this.inPoint = null;
     this.orbGroup = null;
     this.infoText = null;
     this.beams = [];
+    this.blueGoalSprites = [];
+    this.redGoalSprites = [];
 };
 
 gameStep.prototype = { 
@@ -59,41 +63,49 @@ gameStep.prototype = {
             this.redToolsPalette[toolName].onInstructionPlaced = this.onInstructionPlaced;
         };
  
-        //inPoint
-        this.inPoint = {'x':32*11,'y':32*12,'color':'blue'};
-        var inGhost = this.add.sprite(this.inPoint.x, this.inPoint.y ,'grabdrop');
-        inGhost.alpha = 0.5;
-        inGhost.anchor.set(0.5);
-        var display = this.add.text(0,30,"in zone",{fill: "#FFFFFF", font: "13px Arial"});
-        display.anchor.set(0.5);
-        inGhost.addChild(display);
-        //redInPoint
-        this.redInPoint = {'x':32*11,'y':32*7,'color':'red'};
-        var redInGhost = this.add.sprite(this.redInPoint.x, this.redInPoint.y ,'red_grabdrop');
-        redInGhost.alpha = 0.5;
-        redInGhost.anchor.set(0.5);
-        display = this.add.text(0,30,"in zone",{fill: "#FFFFFF", font: "13px Arial"});
-        display.anchor.set(0.5);
-        redInGhost.addChild(display);
-        //outPoint
-        this.outPoint = {'x':32*26,'y':32*12,'color':'blue'};
-        var outGhost = this.add.sprite(this.outPoint.x, this.outPoint.y ,'grabdrop');
-        outGhost.alpha = 0.5;
-        outGhost.anchor.set(0.5);
-        display = this.add.text(0,30,"exit zone",{fill: "#FFFFFF", font: "13px Arial"});
-        display.anchor.set(0.5);
-        outGhost.addChild(display);
-        //redOutPoint
-        this.redOutPoint = {'x':32*26,'y':32*7,'color':'red'};
-        outGhost = this.add.sprite(this.redOutPoint.x, this.redOutPoint.y ,'red_grabdrop');
-        outGhost.alpha = 0.5;
-        outGhost.anchor.set(0.5);
-        display = this.add.text(0,30,"exit zone",{fill: "#FFFFFF", font: "13px Arial"});
-        display.anchor.set(0.5);
-        outGhost.addChild(display);
+        // Where the orbs will pop in
+        this.inPoint = {'x':32*11,'y':32*12,'color':'blue','key':'grabdrop',"text":"in zone"};
+        this.redInPoint = {'x':32*11,'y':32*7,'color':'red','key':'red_grabdrop',"text":"in zone"};
+        // Where the orb can be sucked out
+        this.outPoint = {'x':32*26,'y':32*12,'color':'blue','key':'grabdrop',"text":"exit zone"};
+        this.redOutPoint = {'x':32*26,'y':32*7,'color':'red','key':'red_grabdrop',"text":"exit zone"};
+        // We display ghost point to tell the player where the orb will pop in, and where she/he should deliver it
+        var hintPoints = [this.inPoint, this.redInPoint, this.outPoint, this.redOutPoint];
+        for (var i = 0; i < hintPoints.length; i++) {
+            var point = hintPoints[i]
+            var ghost = this.add.sprite(point.x, point.y , point.key);
+            ghost.alpha = 0.5;
+            ghost.anchor.set(0.5);
+            var display = this.add.text(0,30,point["text"],{fill: "#FFFFFF", font: "13px Arial"});
+            display.anchor.set(0.5);
+            ghost.addChild(display);
+        };
+        //We show the goals
+        var displayRedGoal = this.add.text(580,10, " Red goals: ",{fill: "#FFFFFF", font: "13px Arial"});
+        for (var i = 0; i < this.redObjectives.length; i++) {
+            var targetOrb = this.redObjectives[i];
+            var targetOrbSprite = this.add.sprite(650+i*20, 5 ,targetOrb);
+            targetOrbSprite.scale.set(0.35);
+            targetOrbSprite.alpha = 0.5;
+            targetOrbSprite.achieved = false;
+            targetOrbSprite.goal = targetOrb;
+            this.redGoalSprites.push(targetOrbSprite);
+        };
+        var displayBlueGoal = this.add.text(580,30, "Blue goals: ",{fill: "#FFFFFF", font: "13px Arial"});
+        for (var i = 0; i < this.blueObjectives.length; i++) {
+            var targetOrb = this.blueObjectives[i];
+            var targetOrbSprite = this.add.sprite(650+i*20, 30 ,targetOrb);
+            targetOrbSprite.scale.set(0.35);
+            targetOrbSprite.alpha = 0.5;
+            targetOrbSprite.achieved = false;
+            targetOrbSprite.goal = targetOrb;
+            this.blueGoalSprites.push(targetOrbSprite);
+        };
 
-
+        //Orbs
         this.orbGroup = this.add.group();
+
+        //UI
         this.playButton = game.add.button(400, 10, 'playButton', this.toggleCursors, this);
         this.playButton.scale.set(0.8);
 
@@ -135,6 +147,34 @@ gameStep.prototype = {
 
     },
 
+    resetTry: function(gameStep){
+        gameStep.stopCursors();
+        if(gameStep.infoText){
+            gameStep.infoText.destroy();
+        }
+        //Dropping orbs
+        for (var i = 0; i < gameStep.beams.length; i++) {
+            var beam = gameStep.beams[i];
+            if(beam.targetCursor.carriedOrb){
+                beam.targetCursor.carriedOrb.destroy();
+                beam.targetCursor.carriedOrb = null;
+            }
+        }; 
+        gameStep.orbGroup.removeAll(true, true);
+        //Reset goals state
+        for (var i = 0; i < gameStep.blueGoalSprites.length; i++) {
+            var goalSprite = gameStep.blueGoalSprites[i]
+            goalSprite.alpha = 0.5;
+            goalSprite.achieved = false;
+        };
+        for (var i = 0; i < gameStep.redGoalSprites.length; i++) {
+            var goalSprite = gameStep.redGoalSprites[i]
+            goalSprite.alpha = 0.5;
+            goalSprite.achieved = false;
+        };
+
+    },
+
     orbCollisionTest: function(){
         var allOrbs = [];
         for (var j = 0; j < this.orbGroup.children.length; j++) {
@@ -165,13 +205,7 @@ gameStep.prototype = {
                         if(this.infoText){
                             this.infoText.destroy();
                         }
-                        this.infoText = this.add.text(200, 10, "Collision !!!!", {fill: "#FFFFFF", font: "13px Arial"});
-                        this.game.paused = true;
-                        window.setTimeout(function(){
-                            gameStep.game.paused = false;
-                            gameStep.stopCursors();
-                            gameStep.infoText.destroy();
-                        }, 2000);
+                        this.tryFailure("Collision !!!!");
                     }
                 }
 
@@ -179,8 +213,37 @@ gameStep.prototype = {
         };         
     },
 
-    orbExit: function(orb, exitPoint,gameStep){
+    tryFailure: function(text){
+        var gameStep = this;
+        this.infoText = this.add.text(200, 10, text, {fill: "#FFFFFF", font: "13px Arial"});
+        this.game.paused = true;
+        window.setTimeout(function(){
+            gameStep.game.paused = false;
+            gameStep.resetTry(gameStep);
+        }, 2000);
+    },
+
+    orbExit: function(orb, exitPoint, gameStep){
         console.log("Exiting:", orb.orbKind, exitPoint.color);
+        var impactedGoals = this.blueGoalSprites;
+        if(exitPoint.color == 'red'){
+            impactedGoals = this.redGoalSprites;
+        }
+        for (var i = 0; i < impactedGoals.length; i++) {
+            var goal = impactedGoals[i];
+            if(goal.achieved){
+                //Goal already ok, we check the next one :)
+                continue;
+            }
+            if(goal.goal == orb.orbKind){
+                // We delievered the proper orb !!
+                goal.alpha = 1;
+                goal.achieved = true;
+                break;
+            }else{
+                this.tryFailure("Bad orb :'( ("+orb.orbKind+") instead of "+goal.goal);
+            }
+        };
     },
     // ------ Interface controls -----------------------------------
 
@@ -196,7 +259,7 @@ gameStep.prototype = {
 
     toggleCursors: function(){
         if(this.cursorMoving){
-            this.stopCursors();
+            this.resetTry(this);
             return;
         }
         this.cursorMoving = true;
@@ -289,7 +352,7 @@ gameStep.prototype = {
     },
 
     onBeamTraced: function(beam, gameStep){
-        return
+        return;
         // DEBUG quick tests
         var orb = gameStep.add.sprite(gameStep.redInPoint.x, gameStep.redInPoint.y, "orb");    
         orb.orbKind = "orb";
