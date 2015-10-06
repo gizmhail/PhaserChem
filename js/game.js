@@ -129,6 +129,14 @@ gameStep.prototype = {
         beam2.traceBeam();
 
 
+        //Initial state
+        var addInitialStateInstruction = false;
+        if(addInitialStateInstruction){
+            var instruction = new InstructionElement(32*20+2, 32*7, this.redToolsPalette["red_up"], this);
+            //We retrace the beams
+            beam1.traceBeam();
+            beam2.traceBeam();
+        }
    },
 
     // Called for each refresh

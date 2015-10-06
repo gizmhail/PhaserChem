@@ -42,7 +42,11 @@ PaletteTool.prototype.toolsPaletteClick = function (){
     this.alpha = 0.5;
     this.game.add.tween(this).to({alpha: 1}, 1000, Phaser.Easing.Quadratic.Out, true);
     var newElementDragged = new InstructionElement(this.x, this.y, this, this.gameStep);
-    this.createdInstructions.add(newElementDragged);
+    
+    this.game.time.events.add(150, function() {
+        newElementDragged.input.startDrag(this.game.input.activePointer);
+    }, this);
+
 };
 
 //--------------------------------------------------------------------
@@ -53,6 +57,7 @@ var InstructionElement = function(x, y, paletteTool, gameStep){
     this.gameStep = gameStep;
     this.game = gameStep.game;
     this.game.add.existing(this);
+    paletteTool.createdInstructions.add(this);
     this.instruction = paletteTool.instruction;
     this.paletteTool = paletteTool;
     this.inputEnabled = true;
@@ -63,10 +68,6 @@ var InstructionElement = function(x, y, paletteTool, gameStep){
     this.events.onDragStart.add(this.onInstructionElementDragStart, this);
     this.events.onDragStop.add(this.onInstructionElementDragStop, this);
     this.events.onInputUp.add(this.onInstructionElementInputUp, this);
-
-    this.game.time.events.add(150, function() {
-        this.input.startDrag(this.game.input.activePointer);
-    }, this);
 
     //Bug fix: sometimes, dragStop is not properly called, neither onInputUp for the sprite
     // Probably due to us messing with startDrag ;)
